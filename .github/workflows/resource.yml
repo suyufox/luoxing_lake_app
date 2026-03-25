@@ -93,12 +93,11 @@ jobs:
       - name: Install Rust stable
         if: matrix.android_build == false
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{matrix.android_build == true && 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android'}}
-          # targets: |
-          #   ${{ (matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin') ||
-          #   (matrix.setup_java == true && 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android') ||
-          #   '' }}
+        # with:
+        # targets: |
+        #   ${{ (matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin') ||
+        #   (matrix.setup_java == true && 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android') ||
+        #   '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
