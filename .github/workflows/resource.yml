@@ -17,7 +17,7 @@ jobs:
         include:
           - platform: 'windows-latest'
             android_build: false
-            args: ''
+            args: '--verbose'
           - platform: 'ubuntu-latest'
             build_command: 'pnpm tauri android build'
             android_build: true
