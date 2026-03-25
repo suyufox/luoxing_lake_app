@@ -68,20 +68,17 @@ jobs:
       # - name: Install dependencies (ubuntu only)
       #   if: matrix.platform == 'ubuntu-22.04'
       #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: 'npm'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.30.0
-          run_install: false
+          run_install: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
 
       - name: Install Rust stable [Android Build]
         if: matrix.android_build == true
