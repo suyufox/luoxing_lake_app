@@ -1,0 +1,1 @@
+# Tauri Plugin luoxinglake-service

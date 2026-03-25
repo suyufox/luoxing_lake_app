@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = [
+ "src-tauri",
+ "library/luoxinglake-plugins",
+ "library/luoxinglake-service"
+]
+
+[workspace.metadata]
+format-version = "1"

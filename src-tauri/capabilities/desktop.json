@@ -1,0 +1,17 @@
+{
+  "identifier": "desktop-capability",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "window-state:default",
+    "notification:default",
+    "os:default",
+    "store:default"
+  ]
+}

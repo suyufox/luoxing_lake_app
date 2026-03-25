@@ -1,0 +1,326 @@
+# ========================================
+# Tauri 应用程序配置文件 (TOML 格式)
+# 完整配置说明请参考：https://v2.tauri.app/reference/config
+# 此文件通常位于 `src-tauri` 目录下。
+# ========================================
+
+# 引用 JSON Schema 以在支持的编辑器（如 VS Code）中提供智能提示和验证。
+"$schema" = "https://schema.tauri.app/config/2"
+
+# ========== 应用程序基础信息 ==========
+productName = "luoxinglake"                 # 最终打包出的应用程序名称（显示在系统中）。
+version = "../package.json"                 # 应用程序版本。可以是语义版本号（如 "1.0.0"）或指向 `package.json` 文件的路径。
+mainBinaryName = "luoxinglake"              # 主二进制文件名称（不含 .exe 等扩展名）。Tauri 会重命名输出文件。
+identifier = "top.luoxinglake"              # 应用程序唯一标识符（反向域名格式），用于 bundle ID、系统配置路径等。
+
+# ========== 构建配置 ==========
+[build]
+beforeDevCommand = "pnpm dev"               # 运行 `tauri dev` 前执行的命令，通常用于启动前端开发服务器。
+devUrl = "http://localhost:47365"           # 开发时 Tauri 加载的 URL。
+beforeBuildCommand = "pnpm build"           # 运行 `tauri build` 前执行的命令，用于构建前端生产资源。
+frontendDist = "../dist"                    # 构建后前端资产的目录路径。Tauri 会递归读取并嵌入此目录下的所有文件。
+removeUnusedCommands = false                # 是否尝试在构建时移除插件中注册但未使用的命令（需 tauri-plugin >=2.1）。建议保持默认。
+# beforeBundleCommand = ""                  # （可选）在 `tauri build` 的打包阶段开始前运行的脚本（钩子）。
+# additionalWatchFolders = []               # （可选）运行 `tauri dev` 时要额外监视的文件夹路径列表（例如共享的库目录）。
+# runner = null                             # （可选）用于构建和运行应用程序的自定义二进制文件配置（高级用法）。
+# features = []                             # （可选）传递给 Cargo 构建命令的 Rust 特性列表。
+
+# ========== 应用程序核心配置 ==========
+[app]
+enableGTKAppId = true                       # Linux (GTK) 上，是否将 `identifier` 设置为 GTK 应用程序 ID。
+macOSPrivateApi = false                     # 是否启用 macOS 私有 API（例如用于透明背景）。启用后将无法上架 App Store。
+withGlobalTauri = true                      # 是否将 Tauri API 注入到 `window.__TAURI__` 全局对象。`brownfield` 模式通常设为 true。
+
+# ========== 安全配置 ==========
+[app.security]
+dangerousDisableAssetCspModification = false        # 【危险】是否完全禁止 Tauri 自动修改 CSP（内容安全策略）。除非你完全接管 CSP，否则保持 false。
+freezePrototype = true                              # 使用自定义协议时，是否冻结 `Object.prototype` 以防止原型链污染攻击。
+# capabilities = []                                 # （可选）启用的功能（Capability）列表，用于细粒度的 IPC 权限控制。可内联定义或引用外部文件。
+
+# 应用程序安全模式配置
+[app.security.pattern]
+use = "brownfield"                                  # 安全模式：`brownfield`（默认，在安全性与兼容性间平衡）或 `isolation`（最强隔离）。
+
+# 自定义资产协议配置（用于 asset:// 协议）
+[app.security.assetProtocol]
+enable = false                                      # 是否启用 `asset://` 自定义协议来加载本地资源。
+# scope = []                                        # （可选）定义 `asset://` 协议可以访问的文件系统路径范围（例如 ["$APPDATA/*"]）。启用时必须配置。
+
+# 安全 HTTP 响应头配置（增强 WebView 安全性）
+[app.security.headers]
+Cross-Origin-Opener-Policy = "same-origin"          # 防止页面被嵌入到 iframe 等中，抵御点击劫持。
+Cross-Origin-Embedder-Policy = "require-corp"       # 要求跨域资源必须使用 CORS，有助于防止 Spectre 等攻击。
+X-Content-Type-Options = "nosniff"                  # 禁止浏览器 MIME 类型嗅探，强制使用声明的 Content-Type。
+# Access-Control-Allow-Origin = null                # （可选）CORS 相关，通常由后端服务器设置。
+# Permissions-Policy = null                         # （可选）控制浏览器功能（如摄像头、地理位置）的访问权限。
+
+# 内容安全策略 (CSP) - 生产环境（防御 XSS 等攻击的核心策略）
+[app.security.csp]
+default-src = ["'self'"]                            # 默认只允许加载同源资源。
+# connect-src = ["'self'", "http://localhost:8080", "ws://localhost:8080"]  # 允许前端连接到指定的后端服务器。
+style-src = ["'self'"]                                                      # 允许同源和内联样式（某些 UI 框架需要）。
+# , "'unsafe-inline'"
+script-src = ["'self'"]                                                     # 只允许执行同源的 JavaScript（最安全，禁止内联和外部脚本）。
+img-src = ["'self'"]                                                        # 允许加载同源图片和 data: URL 图片。
+#  ,"data:"
+font-src = ["'self'"]                                                       # 允许加载同源字体。
+# object-src = ["'none'"]                                                   # 禁止加载 <object>, <embed>, <applet> 等插件。
+# base-uri = ["'self'"]                                                     # 限制 <base> 标签的 URL 只能为同源。
+# form-action = ["'self'"]                                                  # 限制表单提交的目标只能为同源。
+
+# 内容安全策略 (CSP) - 开发环境（可适当放宽以便调试）
+# [app.security.devCsp]
+# default-src = ["'self'", "http://localhost:*"] # 允许从本地开发服务器加载资源。
+# connect-src = ["'self'", "http://localhost:*", "ws://localhost:*"]
+# style-src = ["'self'"," "'unsafe-inline'"];
+# script-src = ["'self'", "'unsafe-eval'"];      # 开发时可能允许 eval（例如某些构建工具的热更新）。
+# img-src = ["'self'", "data:", "http://localhost:*"];
+
+# ========== 窗口配置 ==========
+# 主应用程序窗口 (16:9 比例)
+[[app.windows]]
+title = "LuoXing Lake| 落星湖"                     # 窗口标题栏显示的文本。
+label = "main"                                    # 窗口的唯一标识符（ID），用于在代码中引用此窗口。
+width = 1024                                      # 窗口初始宽度（物理像素），等比缩小到80%。
+height = 576                                      # 窗口初始高度（物理像素），等比缩小到80%。
+# fullscreen = false                              # （可选）是否以全屏模式启动。
+resizable = true                                  # （可选）窗口是否可由用户调整大小。
+center = true                                     # （可选）窗口启动时是否居中于屏幕。
+focus = true                                      # （可选）窗口初始是否获得焦点。
+decorations = false                               # （可选）是否显示窗口边框和标题栏。
+transparent = true                                # （可选）窗口背景是否透明（macOS 需启用私有 API）。
+# theme = null                                    # （可选）初始窗口主题（"light", "dark"），默认跟随系统。
+# titleBarStyle = "Visible"                       # （可选）macOS 标题栏样式（"Visible", "Transparent", "Overlay"）。
+# acceptFirstMouse = false                        # （可选）macOS 上，点击非活动窗口是否也激活 WebView。
+# url = "index.html"                              # （可选）窗口加载的 URL 或文件路径。默认为 `frontendDist` 下的 index.html。
+# userAgent = null                                # （可选）自定义 WebView 的用户代理字符串。
+# backgroundColor = null                          # （可选）窗口和 WebView 的背景颜色（CSS 颜色值）。
+minWidth = 640                                    # （可选）窗口最小宽度。
+minHeight = 360                                   # （可选）窗口最小高度。
+# maxWidth = null                                 # （可选）窗口最大宽度。
+# maxHeight = null                                # （可选）窗口最大高度。
+# alwaysOnTop = false                             # （可选）窗口是否始终置顶于其他窗口之上。
+# visible = true                                  # （可选）窗口初始是否可见。
+# fileDropEnabled = true                          # （可选）是否允许在窗口上拖放文件。
+
+[[app.windows]]
+title = "LuoXing Lake Blog| 落星湖 Blog"
+label = "blog"
+width = 1024
+height = 576
+resizable = true
+center = true
+focus = true
+decorations = true
+transparent = true
+minWidth = 640
+minHeight = 360
+visible = false
+
+# 新增的默认隐藏配置窗口
+[[app.windows]]
+title = "Configuration"
+label = "config"
+width = 600
+height = 400
+visible = false                                   # 启动时隐藏此窗口。
+resizable = false                                 # 配置窗口通常大小固定。
+# parent = "main"                                 # （可选）将此窗口设置为 `main` 窗口的子窗口/模态窗口。
+# skipTaskbar = true                              # （可选）是否在任务栏中隐藏此窗口的图标。
+
+# ========== 托盘图标配置 (示例) ==========
+# [[app.tray]]
+# iconPath = "icons/tray-icon.png"                # （必需）托盘图标文件的路径。
+# iconAsTemplate = true                           # （可选）macOS上，图标是否为模板图像（可适应系统主题）。
+# tooltip = "WinterFox"                           # （可选）鼠标悬停在托盘图标上时显示的提示文字。
+# menuOnLeftClick = true                          # （可选）左键点击托盘图标是否显示关联菜单。
+# id = "main-tray"                                # （可选）托盘图标的唯一标识符，默认为 "main"。
+
+# ========== 打包配置 ==========
+[bundle]
+active = true                                                         # 是否启用打包功能（生成安装包）。设为 false 则只生成二进制文件。
+createUpdaterArtifacts = false                                        # 是否为应用程序的自动更新器创建工件（如 .zip, .sig 文件）。
+category = "DeveloperTool"                                            # 应用程序分类（用于商店或包管理器），如 "Utility", "Game"。
+copyright = "Copyright © 2026 SuYufox. All rights reserved."          # 版权声明。
+# 应用程序图标列表（支持多种尺寸和格式，用于不同平台和场景）。
+icon = [
+  "icons/32x32.png", "icons/64x64.png", "icons/128x128.png",
+  "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico",
+  "icons/icon.png", "icons/Square30x30Logo.png", "icons/Square71x71Logo.png",
+  "icons/Square44x44.png", "icons/Square89x89.png", "icons/Square107x107.png",
+  "icons/Square142x142.png", "icons/Square150x150.png", "icons/Square284x284.png",
+  "icons/Square310x310.png", "icons/StoreLogo.png"
+]
+targets = "all"                                                       # 打包目标平台。"all" 表示所有支持的平台，也可指定如 ["deb", "appimage", "msi", "dmg"]。
+useLocalToolsDir = true                                               # 是否将构建工具（如 Wix）缓存到项目 `target` 目录。适用于受限的系统用户环境。
+publisher = "SuYufox"                                                 # （可选）发布者名称。默认从 `identifier` 推导。
+shortDescription = "Su Yufox's small toolbox | 苏鱼狐的小工具箱"         # （可选）应用程序简短描述（用于商店或安装包）。
+longDescription = "Su Yufox's small toolbox contains numerous tools that can be used. | 苏鱼狐的小工具箱，拥有许许多多的工具可以使用。"            # （可选）应用程序详细的多行描述。
+homepage = "https://luoxinglake.top"                                  # （可选）应用程序主页的 URL。
+license = "Apache-2.0"                                                # （可选）软件包许可证标识符（如 "MIT", "Apache-2.0"）。
+licenseFile = "./LICENSE"                                             # （可选）许可证文件路径（相对于项目根目录）。
+resources = [                                                         # （可选）要捆绑到应用程序中的额外资源文件或目录列表（支持 glob 模式）。
+  "./locale/*"
+]
+fileAssociations = [                                                  # （可选）文件关联配置列表，使应用程序能成为特定文件类型的默认打开程序。
+  {
+    ext = ["txt", "text"],                                            # 关联的文件扩展名（不含点）
+    name = "plaintext",                                               # 文件类型的唯一标识符
+    description = "Text File",                                        # 文件类型描述
+    role = "Editor"                                                   # 应用的角色：Editor 或 Viewer
+  },
+  {
+	  ext = ["luoxinglake-configs"],
+	  name = "luoxinglake-configs",
+	  description = "LuoXingLake Configs",
+	  role = "Editor",
+	  exportedType = {
+      identifier = "top.luoxinglake.configs_file",  # 唯一标识符
+      conformsTo = ["public.data"]      # 继承自基础类型
+    }
+  },
+  {
+    ext = ["jpg", "jpeg"],
+    role = "Viewer",
+    contentTypes = ["public.jpeg"],
+    rank = "Alternate"
+  }
+]
+# externalBin = []                  # （可选）要与应用程序一同嵌入的外部二进制文件路径列表（高级用法，用于调用外部工具）。
+
+# Android 特定打包配置
+[bundle.android]
+minSdkVersion = 24                  # 应用程序运行所需的最低 Android API 级别。
+# versionCode = null                # （可选）Android 版本代码（整数）。未设置时根据 `version` 自动计算。
+
+# iOS 特定打包配置
+[bundle.iOS]
+minimumSystemVersion = "14.0"       # 应用程序支持的最低 iOS 系统版本。
+# bundleVersion = null              # （可选）iOS 构建版本号 (CFBundleVersion)。
+# developmentTeam = null            # （可选）Apple 开发团队 ID（用于代码签名，必需）。
+# frameworks = []                   # （可选）需要与应用程序捆绑的 iOS 框架名称列表（如 ["CoreData"]）。
+
+# Linux 通用打包配置
+[bundle.linux]
+#category = "Development"             # （可选）桌面条目的分类，如 "Development", "Education"。
+
+# Linux AppImage 配置
+[bundle.linux.appimage]
+bundleMediaFramework = false        # 是否捆绑 GStreamer 框架以支持音视频播放（会增加约 15-35MB 体积）。
+# 要包含在 AppImage 中的额外文件（键值对，源路径 -> 目标路径）
+[bundle.linux.appimage.files]
+# "path/to/source" = "dest/path/in/appimage"
+
+# Linux Debian (.deb) 包配置
+[bundle.linux.deb]
+# depends = []                      # （可选）依赖的 Debian 包列表（如 ["libgtk-3-0", "libwebkit2gtk-4.0-37"]）。
+# recommends = []                   # （可选）推荐的 Debian 包列表。
+# section = "utils"                 # （可选）软件包在仓库中的分类。
+[bundle.linux.deb.files]
+# "path/to/source" = "dest/path/in/deb"
+
+# Linux RPM (.rpm) 包配置
+[bundle.linux.rpm]
+epoch = 0                           # RPM 纪元（用于版本控制）。
+release = "1"                       # RPM 发行标签。
+# depends = []                      # （可选）依赖的 RPM 包列表。
+# recommends = []                   # （可选）推荐的 RPM 包列表。
+[bundle.linux.rpm.files]
+# "path/to/source" = "dest/path/in/rpm"
+
+# macOS 特定打包配置
+[bundle.macOS]
+hardenedRuntime = true              # 是否为代码签名启用强化运行时（Hardened Runtime，推荐开启）。
+minimumSystemVersion = "10.13"      # 应用程序支持的最低 macOS 系统版本。
+# bundleVersion = null              # （可选）macOS 构建版本号 (CFBundleVersion)。
+# entitlements = null               # （可选）权利（Entitlements）文件路径（用于沙盒和权限，如上架 Mac App Store）。
+# exceptionDomain = null            # （可选）允许应用程序通信的域名（用于本地网络访问等）。
+# frameworks = []                   # （可选）需要与应用程序捆绑的 macOS 框架路径或名称列表。
+# providerShortName = null          # （可选）公证机构（Notarization）的简称。
+# signingIdentity = null            # （可选）用于代码签名的证书身份名称。
+
+# macOS DMG 磁盘映像配置
+[bundle.macOS.dmg]
+[bundle.macOS.dmg.appPosition]
+x = 180                             # 应用程序图标在 DMG 窗口中的 X 坐标。
+y = 170                             # 应用程序图标在 DMG 窗口中的 Y 坐标。
+
+[bundle.macOS.dmg.applicationFolderPosition]
+x = 480                             # "应用程序"文件夹链接在 DMG 窗口中的 X 坐标。
+y = 170                             # "应用程序"文件夹链接在 DMG 窗口中的 Y 坐标。
+
+[bundle.macOS.dmg.windowSize]
+height = 400                        # DMG 窗口的高度。
+width = 660                         # DMG 窗口的宽度。
+# background = null                 # （可选）用作 DMG 文件背景的图片路径（png/jpg/gif）。
+
+# 要包含在 macOS 应用程序包中的额外文件（相对于 Contents 目录）
+[bundle.macOS.files]
+# "path/to/source" = "dest/path/in/bundle"
+
+# Windows 特定打包配置
+[bundle.windows]
+allowDowngrades = true              # 是否允许用户安装比当前已安装版本更旧的版本。
+tsp = false                         # 是否对时间戳服务器使用 TSP (RFC 3161) 协议（某些代码签名商需要）。
+# certificateThumbprint = null      # （可选）签名证书的 SHA1 哈希值（用于自动签名）。
+# digestAlgorithm = null            # （可选）创建文件签名时使用的摘要算法（如 "sha256"，代码签名必需）。
+# timestampUrl = null               # （可选）时间戳服务器的 URL（用于代码签名）。
+# signCommand = null                # （可选）用于签名二进制文件的自定义命令（用于跨平台签名场景）。
+
+# Windows NSIS 安装程序配置
+[bundle.windows.nsis]
+displayLanguageSelector = true                                    # 是否在安装程序开始时显示语言选择对话框。
+languages = ["SimpChinese", "TradChinese", "English", "Japanese"] # 安装程序支持的语言列表。
+compression = "lzma"                                              # （可选）安装程序使用的压缩算法（"zlib", "bzip2", "lzma"）。
+installerIcon = "icons/icon.ico"                                  # （可选）安装程序图标的 .ico 文件路径。
+# headerImage = null                                              # （可选）安装程序页面标题处显示的位图文件路径（推荐150x57）。
+# sidebarImage = null                                             # （可选）安装程序侧边栏（欢迎和完成页）显示的位图文件路径（推荐164x314）。
+startMenuFolder = "LuoXing Lake | 落星湖"                          # （可选）开始菜单快捷方式的文件夹名称。
+installMode = "both"                                              # （可选）安装模式："currentUser"（仅当前用户）, "perMachine"（所有用户）, "both"（让用户选择）。
+
+# Windows WiX (MSI) 安装程序配置（与 NSIS 二选一或共存）
+[bundle.windows.wix]
+language = ["en-US", "zh-CN", "zh-TW", "ja-JP"]                   # 要构建的 MSI 安装程序语言列表。
+upgradeCode = "dd39e02d-4f5f-5ecb-a295-dee2c8cf2ccd"              # （可选）MSI 升级代码（GUID）。必须在所有版本中保持一致，否则会被视为新应用。
+# fragmentPaths = []                                              # （可选）自定义的 WiX 片段 (.wxs) 文件路径列表。
+
+# Windows WebView2 运行时安装模式配置
+[bundle.windows.webviewInstallMode]
+silent = true                       # 是否以静默模式安装 WebView2（不显示用户界面）。
+type = "offlineInstaller"           # 安装模式："offlineInstaller"（嵌入完整安装包，体积大），"downloadBootstrapper"（下载引导程序，体积小），"embedBootstrapper"（嵌入引导程序），"fixedRuntime"（嵌入固定版本运行时），"skip"（不安装）。
+
+# ========== 插件配置 ==========
+# 此处用于配置各个 Tauri 插件的选项。
+# 键为插件名称（通常不带 `tauri-plugin-` 前缀），值为该插件的配置对象。
+# 配置必须参考具体插件的官方文档。
+[plugins]
+
+[plugins."deep-link"]
+moblie = [
+  {
+    scheme = ["https"],
+	  host =   "luoxinglake.top",
+	  pathPrefix = ["/"],
+	  appLink =  true
+  },
+  {
+	  scheme = ["luoxinglake"],
+	  appLink =  false
+  },
+  {
+	  scheme = ["luoxinglake-link"],
+	  appLink =  false
+  },
+  {
+	  scheme = ["luoxinglake-configs"],
+	  appLink =  false
+  },
+  {
+	  scheme = ["luoxinglake-plugins"],
+	  appLink =  false
+  }
+]
+desktop = {
+  schemes = ["luoxinglake","luoxinglake-link","luoxinglake-configs","luoxinglake-plugins"]
+}
+
