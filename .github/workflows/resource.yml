@@ -137,6 +137,7 @@ jobs:
           releaseBody: '请查看资产列表以下载对应平台的安装包。'
           releaseDraft: false
           prerelease: false
+          beforeBuildCommand: 'chcp 65001'
           args: ${{ matrix.args }}
 
       - name: Upload Android Artifacts
