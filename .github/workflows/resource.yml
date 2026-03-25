@@ -1,0 +1,138 @@
+name: 'Publish'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            args: ''
+          - platform: 'ubuntu-latest'
+            build_command: 'pnpm tauri android build'
+            setup_java: true
+          # Linux 和 macOS
+          # - platform: 'ubuntu-22.04'
+          #   args: ''
+          # - platform: 'macos-latest'
+          #   args: '--target x86_64-apple-darwin'
+          # - platform: 'macos-latest'
+          #   args: '--target aarch64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        if: matrix.setup_java == true
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        if: matrix.setup_java == true
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          cmdline-tools-version: 12266719
+          log-accepted-android-sdk-licenses: true
+
+      - name: Install Android Ndk
+        run: sdkmanager --install "ndk;29.0.14206865"
+
+      - name: Install Android Build Tools
+        run: sdkmanager --install "build-tools;36.1.0"
+
+      - name: Install Android
+        run: sdkmanager --install "platforms;android-36"
+
+      - name: Install Android Platform Tools
+        run: sdkmanager --install "platform-tools"
+
+      # 可选：Linux 依赖（已注释）
+      # - name: Install dependencies (ubuntu only)
+      #   if: matrix.platform == 'ubuntu-22.04'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/24.13.1
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.0
+          run_install: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: |
+            ${{ (matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin') ||
+            (matrix.setup_java == true && 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android') ||
+            '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      # Android 签名配置：写入 keystore 文件并生成 keystore.properties
+      - name: Configure Android signing
+        if: matrix.setup_java == true
+        run: |
+          mkdir -p src-tauri/gen/android
+          # 将 base64 编码的 keystore 解码并写入文件
+          echo "${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}" | base64 -d > src-tauri/gen/android/keystore.jks
+          # 生成 keystore.properties 文件，使用相对路径指向刚刚生成的 keystore
+          cat > src-tauri/gen/android/keystore.properties << EOF
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=keystore.jks
+          EOF
+
+      - name: Build Android
+        if: matrix.setup_java == true
+        run: ${{ matrix.build_command }}
+
+      - name: Build and Release (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Tauri App v__VERSION__'
+          releaseBody: '请查看资产列表以下载对应平台的安装包。'
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+
+      - name: Upload Android Artifacts
+        if: matrix.setup_java == true
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+            src-tauri/gen/android/app/build/outputs/bundle/release/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
