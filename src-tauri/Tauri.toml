@@ -280,13 +280,7 @@ installMode = "both"                                              # （可选）
 
 # Windows WiX (MSI) 安装程序配置（与 NSIS 二选一或共存）
 [bundle.windows.wix]
-language = {
-  "en-US" = { codepage = 65001 },
-  "zh-CN" = { codepage = 65001 },
-  "zh-TW" = { codepage = 65001 },
-  "ja-JP" = { codepage = 65001 }
-}
-#language = ["en-US", "zh-CN", "zh-TW", "ja-JP"]                   # 要构建的 MSI 安装程序语言列表。
+language = ["en-US", "zh-CN", "zh-TW", "ja-JP"]                   # 要构建的 MSI 安装程序语言列表。
 upgradeCode = "dd39e02d-4f5f-5ecb-a295-dee2c8cf2ccd"              # （可选）MSI 升级代码（GUID）。必须在所有版本中保持一致，否则会被视为新应用。
 # fragmentPaths = []                                              # （可选）自定义的 WiX 片段 (.wxs) 文件路径列表。
 
